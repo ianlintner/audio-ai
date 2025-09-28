@@ -12,3 +12,4 @@ build
 coverage
 *.swp
 *.bak
+/.idea/
