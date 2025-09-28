@@ -22,3 +22,6 @@ samples/
 *.ogg
 *.wma
 
+*_gpt.json
+/implementation_plan.md
+/TODO.md
