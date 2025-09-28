@@ -1,0 +1,14 @@
+/target
+.idea/
+samples
+.env
+.vscode
+*.log
+*.tmp
+.DS_Store
+node_modules
+dist
+build
+coverage
+*.swp
+*.bak
