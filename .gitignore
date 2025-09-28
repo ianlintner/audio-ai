@@ -13,3 +13,12 @@ coverage
 *.swp
 *.bak
 /.idea/
+samples/
+*.mp3
+*.wav
+*.flac
+*.m4a
+*.aac
+*.ogg
+*.wma
+
