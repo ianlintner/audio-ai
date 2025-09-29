@@ -12,9 +12,9 @@ rodio = "0.17.3"
 symphonia = { version = "0.5.4", features = ["wav", "mp3", "flac"] }
 reqwest = { version = "0.11", features = ["json", "blocking", "rustls-tls"] }
 tokio = { version = "1", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0"
-aubio = { version = "0.2.0", features = ["bindgen"] }
+aubio = { version = "0.2.1"}
 dotenv = "0.15"
 rustfft = "6.4.1"
 ndarray = "0.16.1"

@@ -10,6 +10,32 @@ pub struct NoteEvent {
     pub confidence: f32,
 }
 
+ 
+/// Compare two audio files (player vs reference) and return similarity score
+pub fn compare_to_reference(player_path: &str, reference_path: &str) -> anyhow::Result<f32> {
+    let player_analysis = analyze_audio(player_path)?;
+    let reference_analysis = analyze_audio(reference_path)?;
+
+    // Simple similarity: cosine similarity of spectral centroids
+    let min_len = player_analysis.spectral_centroid.len().min(reference_analysis.spectral_centroid.len());
+    if min_len == 0 {
+        return Ok(0.0);
+    }
+
+    let a = &player_analysis.spectral_centroid[..min_len];
+    let b = &reference_analysis.spectral_centroid[..min_len];
+
+    let dot: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
+    let norm_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+    let norm_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+
+    if norm_a > 0.0 && norm_b > 0.0 {
+        Ok(dot / (norm_a * norm_b))
+    } else {
+        Ok(0.0)
+    }
+}
+
 #[derive(Serialize, Debug)]
 pub struct StreamingState {
     pub current_time: f32,
