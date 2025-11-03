@@ -11,8 +11,16 @@ pub fn export_for_gpt(result: &AnalysisResult, output_path: &str) -> anyhow::Res
     } else {
         None
     };
-    let min_pitch = result.pitch_hz.iter().cloned().fold(f32::INFINITY, f32::min);
-    let max_pitch = result.pitch_hz.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+    let min_pitch = result
+        .pitch_hz
+        .iter()
+        .cloned()
+        .fold(f32::INFINITY, f32::min);
+    let max_pitch = result
+        .pitch_hz
+        .iter()
+        .cloned()
+        .fold(f32::NEG_INFINITY, f32::max);
 
     // Convert Hz into musical note names for GPT readability
     fn hz_to_note(hz: f32) -> String {
@@ -21,7 +29,9 @@ pub fn export_for_gpt(result: &AnalysisResult, output_path: &str) -> anyhow::Res
         }
         let a4 = 440.0;
         let semitones = (12.0 * (hz / a4).log2()).round() as i32;
-        let note_names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        let note_names = [
+            "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+        ];
         let note_index = ((semitones + 9) % 12 + 12) % 12; // align A4=440
         let octave = 4 + (semitones + 9) / 12;
         format!("{}{}", note_names[note_index as usize], octave)
@@ -50,15 +60,20 @@ pub fn export_for_gpt(result: &AnalysisResult, output_path: &str) -> anyhow::Res
     }
 
     // Combine into a unified GPT-friendly structure
-    let combined: Vec<_> = result.pitch_hz.iter().enumerate().map(|(i, &hz)| {
-        json!({
-            "time_seconds": result.onsets.get(i).cloned().unwrap_or(i as f32 * 0.01), // fallback: assume 10ms hop size
-            "pitch_hz": hz,
-            "note": hz_to_note(hz),
-            "midi": hz_to_midi(hz),
-            "tab": hz_to_tab(hz),
+    let combined: Vec<_> = result
+        .pitch_hz
+        .iter()
+        .enumerate()
+        .map(|(i, &hz)| {
+            json!({
+                "time_seconds": result.onsets.get(i).cloned().unwrap_or(i as f32 * 0.01), // fallback: assume 10ms hop size
+                "pitch_hz": hz,
+                "note": hz_to_note(hz),
+                "midi": hz_to_midi(hz),
+                "tab": hz_to_tab(hz),
+            })
         })
-    }).collect();
+        .collect();
 
     // Simple piece identification (pattern matching)
     let identified_piece = if let Some(avg) = avg_pitch {
@@ -78,19 +93,25 @@ pub fn export_for_gpt(result: &AnalysisResult, output_path: &str) -> anyhow::Res
         let mut start = 0.0;
         while start < last_time {
             let end = (start + chunk_size).min(last_time);
-            let indices: Vec<usize> = result.onsets.iter().enumerate()
+            let indices: Vec<usize> = result
+                .onsets
+                .iter()
+                .enumerate()
                 .filter(|&(_, &t)| t >= start && t < end)
                 .map(|(i, _)| i)
                 .collect();
-            let chunk_data: Vec<_> = indices.iter().map(|&i| {
-                json!({
-                    "time_seconds": result.onsets[i],
-                    "pitch_hz": result.pitch_hz.get(i).cloned().unwrap_or(0.0),
-                    "note": result.pitch_hz.get(i).map(|&hz| hz_to_note(hz)),
-                    "midi": result.pitch_hz.get(i).and_then(|&hz| hz_to_midi(hz)),
-                    "tab": result.pitch_hz.get(i).map(|&hz| hz_to_tab(hz)),
+            let chunk_data: Vec<_> = indices
+                .iter()
+                .map(|&i| {
+                    json!({
+                        "time_seconds": result.onsets[i],
+                        "pitch_hz": result.pitch_hz.get(i).cloned().unwrap_or(0.0),
+                        "note": result.pitch_hz.get(i).map(|&hz| hz_to_note(hz)),
+                        "midi": result.pitch_hz.get(i).and_then(|&hz| hz_to_midi(hz)),
+                        "tab": result.pitch_hz.get(i).map(|&hz| hz_to_tab(hz)),
+                    })
                 })
-            }).collect();
+                .collect();
             chunks.push(json!({
                 "start": start,
                 "end": end,
@@ -102,16 +123,20 @@ pub fn export_for_gpt(result: &AnalysisResult, output_path: &str) -> anyhow::Res
 
     // Handle streaming mode if present
     let streaming_json = if let Some(streaming) = &result.streaming {
-        let notes: Vec<_> = streaming.detected_notes.iter().map(|note: &NoteEvent| {
-            json!({
-                "time": note.time,
-                "pitch_hz": note.pitch_hz,
-                "note": hz_to_note(note.pitch_hz),
-                "midi": hz_to_midi(note.pitch_hz),
-                "tab": hz_to_tab(note.pitch_hz),
-                "confidence": note.confidence,
+        let notes: Vec<_> = streaming
+            .detected_notes
+            .iter()
+            .map(|note: &NoteEvent| {
+                json!({
+                    "time": note.time,
+                    "pitch_hz": note.pitch_hz,
+                    "note": hz_to_note(note.pitch_hz),
+                    "midi": hz_to_midi(note.pitch_hz),
+                    "tab": hz_to_tab(note.pitch_hz),
+                    "confidence": note.confidence,
+                })
             })
-        }).collect();
+            .collect();
         Some(json!({
             "current_time": streaming.current_time,
             "notes": notes

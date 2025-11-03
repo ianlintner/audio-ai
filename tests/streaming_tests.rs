@@ -1,5 +1,5 @@
-use audio_ai::audio_analysis::{StreamingState, NoteEvent, analyze_stream_chunk};
-use aubio::{Pitch, Onset};
+use aubio::{Onset, Pitch};
+use audio_ai::audio_analysis::{NoteEvent, StreamingState, analyze_stream_chunk};
 
 #[test]
 fn test_streaming_state_accumulates_notes() {
@@ -7,11 +7,23 @@ fn test_streaming_state_accumulates_notes() {
     let win_size = 1024;
     let hop_size = 512;
 
-    let mut pitch = Pitch::new(aubio::PitchMode::Yin, win_size, hop_size, sample_rate as u32).unwrap();
+    let mut pitch = Pitch::new(
+        aubio::PitchMode::Yin,
+        win_size,
+        hop_size,
+        sample_rate as u32,
+    )
+    .unwrap();
     pitch.set_unit(aubio::PitchUnit::Hz);
     pitch.set_silence(-40.0);
 
-    let mut onset = Onset::new(aubio::OnsetMode::Complex, win_size, hop_size, sample_rate as u32).unwrap();
+    let mut onset = Onset::new(
+        aubio::OnsetMode::Complex,
+        win_size,
+        hop_size,
+        sample_rate as u32,
+    )
+    .unwrap();
 
     let mut state = StreamingState {
         current_time: 0.0,
