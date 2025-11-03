@@ -43,7 +43,7 @@ pub fn export_for_gpt(result: &AnalysisResult, output_path: &str) -> anyhow::Res
             return None;
         }
         let midi = (69.0 + 12.0 * (hz / 440.0).log2()).round();
-        if midi >= 0.0 && midi <= 127.0 {
+        if (0.0..=127.0).contains(&midi) {
             Some(midi as u8)
         } else {
             None
@@ -148,7 +148,7 @@ pub fn export_for_gpt(result: &AnalysisResult, output_path: &str) -> anyhow::Res
     let json_output = json!({
         "instructions": "You are an AI music analyst. Use the provided features (pitch, tempo, onsets, spectral centroid, and identified_piece) to determine what piece of music is being played. If 'identified_piece' is present, treat it as a strong hint but still validate against the features. Provide feedback on timing, accuracy, and tone in the context of the identified piece.\n\nContext: Common rock guitar notes and chords often center around standard tuning (EADGBE). Frequencies include: E2 ≈ 82.41 Hz, A2 ≈ 110 Hz, D3 ≈ 146.83 Hz, G3 ≈ 196 Hz, B3 ≈ 246.94 Hz, E4 ≈ 329.63 Hz. Power chords are built on root + fifth (e.g., E5: E2 + B2). Common rock chords: A major (A2, E3, A3, C#4, E4), D major (D3, A3, D4, F#4), G major (G2, B2, D3, G3, B3, G4). Use this context to better interpret the extracted frequencies and patterns. The analysis is chunked into ~10 second segments for clarity.\n\nZooming: You may also zoom into specific interesting sections (e.g., 2-5 seconds) to provide more detailed analysis of timing, pitch accuracy, and tone. Highlight anomalies or notable playing techniques in these zoomed-in windows.",
         "summary": {
-            "average_pitch_note": avg_pitch.map(|hz| hz_to_note(hz)),
+            "average_pitch_note": avg_pitch.map(hz_to_note),
             "min_pitch_note": if min_pitch.is_finite() { Some(hz_to_note(min_pitch)) } else { None },
             "max_pitch_note": if max_pitch.is_finite() { Some(hz_to_note(max_pitch)) } else { None },
             "tempo_bpm": result.tempo_bpm,

@@ -53,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
 
     // Decode packets
-    while let Ok(packet) = format.next_packet() {
+    if let Ok(packet) = format.next_packet() {
         let decoded = decoder.decode(&packet)?;
         let spec = decoded.spec();
         let duration = decoded.capacity() as f32 / spec.rate as f32;
@@ -62,7 +62,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             decoded.capacity(),
             duration
         );
-        break; // For now, just decode first packet
     }
 
     // Use our audio analysis module
@@ -76,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     export_for_gpt(&analysis, "analysis_gpt.json")?;
     println!("Exported GPT-friendly analysis to analysis_gpt.json");
 
-    let detected_pitch = format!("{:.2} Hz", analysis.pitch_hz.get(0).unwrap_or(&0.0));
+    let detected_pitch = format!("{:.2} Hz", analysis.pitch_hz.first().unwrap_or(&0.0));
     let detected_tempo = analysis
         .tempo_bpm
         .map(|t| format!("{:.1} bpm", t))

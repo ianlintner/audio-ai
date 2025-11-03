@@ -11,6 +11,7 @@ pub struct NoteEvent {
 }
 
 /// Compare two audio files (player vs reference) and return similarity score
+#[allow(dead_code)]
 pub fn compare_to_reference(player_path: &str, reference_path: &str) -> anyhow::Result<f32> {
     let player_analysis = analyze_audio(player_path)?;
     let reference_analysis = analyze_audio(reference_path)?;
