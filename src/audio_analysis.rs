@@ -10,14 +10,17 @@ pub struct NoteEvent {
     pub confidence: f32,
 }
 
- 
 /// Compare two audio files (player vs reference) and return similarity score
+#[allow(dead_code)]
 pub fn compare_to_reference(player_path: &str, reference_path: &str) -> anyhow::Result<f32> {
     let player_analysis = analyze_audio(player_path)?;
     let reference_analysis = analyze_audio(reference_path)?;
 
     // Simple similarity: cosine similarity of spectral centroids
-    let min_len = player_analysis.spectral_centroid.len().min(reference_analysis.spectral_centroid.len());
+    let min_len = player_analysis
+        .spectral_centroid
+        .len()
+        .min(reference_analysis.spectral_centroid.len());
     if min_len == 0 {
         return Ok(0.0);
     }
@@ -55,7 +58,8 @@ pub fn analyze_audio(file_path: &str) -> anyhow::Result<AnalysisResult> {
     // Load WAV file
     let mut reader = WavReader::open(file_path)?;
     let spec = reader.spec();
-    let samples: Vec<f32> = reader.samples::<i16>()
+    let samples: Vec<f32> = reader
+        .samples::<i16>()
         .map(|s| s.unwrap() as f32 / i16::MAX as f32)
         .collect();
 
@@ -64,9 +68,24 @@ pub fn analyze_audio(file_path: &str) -> anyhow::Result<AnalysisResult> {
     let win_size = 1024;
 
     // Aubio pitch, tempo, onset
-    let mut pitch = Pitch::new(aubio::PitchMode::Yin, win_size, hop_size, sample_rate as u32)?;
-    let mut tempo = Tempo::new(aubio::OnsetMode::Complex, win_size, hop_size, sample_rate as u32)?;
-    let mut onset = Onset::new(aubio::OnsetMode::Complex, win_size, hop_size, sample_rate as u32)?;
+    let mut pitch = Pitch::new(
+        aubio::PitchMode::Yin,
+        win_size,
+        hop_size,
+        sample_rate as u32,
+    )?;
+    let mut tempo = Tempo::new(
+        aubio::OnsetMode::Complex,
+        win_size,
+        hop_size,
+        sample_rate as u32,
+    )?;
+    let mut onset = Onset::new(
+        aubio::OnsetMode::Complex,
+        win_size,
+        hop_size,
+        sample_rate as u32,
+    )?;
 
     // Configure pitch detection
     pitch.set_unit(aubio::PitchUnit::Hz);
@@ -113,10 +132,13 @@ pub fn analyze_audio(file_path: &str) -> anyhow::Result<AnalysisResult> {
         }
 
         // Spectral centroid
-        let mut buffer: Vec<Complex<f32>> = input.iter().map(|&x| Complex{ re: x, im: 0.0 }).collect();
+        let mut buffer: Vec<Complex<f32>> =
+            input.iter().map(|&x| Complex { re: x, im: 0.0 }).collect();
         fft.process(&mut buffer);
         let mags: Vec<f32> = buffer.iter().map(|c| c.norm()).collect();
-        let freqs: Vec<f32> = (0..mags.len()).map(|k| k as f32 * sample_rate as f32 / win_size as f32).collect();
+        let freqs: Vec<f32> = (0..mags.len())
+            .map(|k| k as f32 * sample_rate as f32 / win_size as f32)
+            .collect();
         let num: f32 = mags.iter().zip(freqs.iter()).map(|(m, f)| m * f).sum();
         let den: f32 = mags.iter().sum();
         if den > 0.0 {

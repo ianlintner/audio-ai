@@ -1,8 +1,8 @@
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::SampleFormat;
-use num_traits::ToPrimitive;
-use aubio::{Onset, Pitch};
 use crate::audio_analysis::{StreamingState, analyze_stream_chunk};
+use aubio::{Onset, Pitch};
+use cpal::SampleFormat;
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use num_traits::ToPrimitive;
 
 /// Starts real-time streaming analysis using CPAL for live guitar input
 pub fn start_streaming_analysis() -> anyhow::Result<()> {
@@ -21,18 +21,52 @@ pub fn start_streaming_analysis() -> anyhow::Result<()> {
     // Aubio pitch and onset detectors
     let win_size = 1024;
     let hop_size = 512;
-    let mut pitch = Pitch::new(aubio::PitchMode::Yin, win_size, hop_size, sample_rate as u32)?;
+    let mut pitch = Pitch::new(
+        aubio::PitchMode::Yin,
+        win_size,
+        hop_size,
+        sample_rate as u32,
+    )?;
     pitch.set_unit(aubio::PitchUnit::Hz);
     pitch.set_silence(-40.0);
 
-    let mut onset = Onset::new(aubio::OnsetMode::Complex, win_size, hop_size, sample_rate as u32)?;
+    let mut onset = Onset::new(
+        aubio::OnsetMode::Complex,
+        win_size,
+        hop_size,
+        sample_rate as u32,
+    )?;
 
     let err_fn = |err| eprintln!("Stream error: {}", err);
 
     let stream = match config.sample_format() {
-        SampleFormat::F32 => build_input_stream::<f32>(&device, &config.into(), sample_rate, &mut state, &mut pitch, &mut onset, err_fn)?,
-        SampleFormat::I16 => build_input_stream::<i16>(&device, &config.into(), sample_rate, &mut state, &mut pitch, &mut onset, err_fn)?,
-        SampleFormat::U16 => build_input_stream::<u16>(&device, &config.into(), sample_rate, &mut state, &mut pitch, &mut onset, err_fn)?,
+        SampleFormat::F32 => build_input_stream::<f32>(
+            &device,
+            &config.into(),
+            sample_rate,
+            &mut state,
+            &mut pitch,
+            &mut onset,
+            err_fn,
+        )?,
+        SampleFormat::I16 => build_input_stream::<i16>(
+            &device,
+            &config.into(),
+            sample_rate,
+            &mut state,
+            &mut pitch,
+            &mut onset,
+            err_fn,
+        )?,
+        SampleFormat::U16 => build_input_stream::<u16>(
+            &device,
+            &config.into(),
+            sample_rate,
+            &mut state,
+            &mut pitch,
+            &mut onset,
+            err_fn,
+        )?,
         _ => return Err(anyhow::anyhow!("Unsupported sample format")),
     };
 
@@ -79,13 +113,18 @@ where
 
                 if let Ok(mut state) = state.lock() {
                     // Recreate pitch and onset detectors inside the callback (thread-local)
-                    let mut pitch = Pitch::new(aubio::PitchMode::Yin, 1024, 512, sample_rate as u32).unwrap();
+                    let mut pitch =
+                        Pitch::new(aubio::PitchMode::Yin, 1024, 512, sample_rate as u32).unwrap();
                     pitch.set_unit(aubio::PitchUnit::Hz);
                     pitch.set_silence(-40.0);
 
-                    let mut onset = Onset::new(aubio::OnsetMode::Complex, 1024, 512, sample_rate as u32).unwrap();
+                    let mut onset =
+                        Onset::new(aubio::OnsetMode::Complex, 1024, 512, sample_rate as u32)
+                            .unwrap();
 
-                    if let Some(note) = analyze_stream_chunk(&mono, sample_rate, &mut state, &mut pitch, &mut onset) {
+                    if let Some(note) =
+                        analyze_stream_chunk(&mono, sample_rate, &mut state, &mut pitch, &mut onset)
+                    {
                         println!("Detected note: {:?}", note);
                     }
                 }

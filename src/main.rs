@@ -4,11 +4,11 @@ mod streaming;
 
 use std::env;
 use std::fs::File;
-use symphonia::default::{get_probe};
+use symphonia::core::codecs::DecoderOptions;
+use symphonia::core::errors::Error;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::probe::Hint;
-use symphonia::core::errors::Error;
-use symphonia::core::codecs::DecoderOptions;
+use symphonia::default::get_probe;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -44,18 +44,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut format = probed.format;
 
     // Get the default track.
-    let track = format.default_track().ok_or(Error::DecodeError("No default track"))?;
+    let track = format
+        .default_track()
+        .ok_or(Error::DecodeError("No default track"))?;
 
     // Create a decoder for the track.
-    let mut decoder = symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
+    let mut decoder =
+        symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
 
     // Decode packets
-    while let Ok(packet) = format.next_packet() {
+    if let Ok(packet) = format.next_packet() {
         let decoded = decoder.decode(&packet)?;
         let spec = decoded.spec();
         let duration = decoded.capacity() as f32 / spec.rate as f32;
-        println!("Decoded {} samples, duration ~{:.2} sec", decoded.capacity(), duration);
-        break; // For now, just decode first packet
+        println!(
+            "Decoded {} samples, duration ~{:.2} sec",
+            decoded.capacity(),
+            duration
+        );
     }
 
     // Use our audio analysis module
@@ -69,16 +75,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     export_for_gpt(&analysis, "analysis_gpt.json")?;
     println!("Exported GPT-friendly analysis to analysis_gpt.json");
 
-    let detected_pitch = format!("{:.2} Hz", analysis.pitch_hz.get(0).unwrap_or(&0.0));
-    let detected_tempo = analysis.tempo_bpm.map(|t| format!("{:.1} bpm", t)).unwrap_or("N/A".to_string());
+    let detected_pitch = format!("{:.2} Hz", analysis.pitch_hz.first().unwrap_or(&0.0));
+    let detected_tempo = analysis
+        .tempo_bpm
+        .map(|t| format!("{:.1} bpm", t))
+        .unwrap_or("N/A".to_string());
     let detected_onsets = analysis.onsets.len();
 
-    println!("Extracted features -> Pitch: {}, Tempo: {}, Onsets: {}", detected_pitch, detected_tempo, detected_onsets);
+    println!(
+        "Extracted features -> Pitch: {}, Tempo: {}, Onsets: {}",
+        detected_pitch, detected_tempo, detected_onsets
+    );
 
     // Send extracted features to OpenAI for analysis
     let client = reqwest::Client::new();
-    let api_key = std::env::var("OPENAI_API_KEY")
-        .expect("OPENAI_API_KEY environment variable not set");
+    let api_key =
+        std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY environment variable not set");
 
     let prompt = format!(
         "Analyze this guitar recording. Provide feedback on timing, accuracy, and tone. \
