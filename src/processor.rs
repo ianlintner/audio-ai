@@ -1,4 +1,8 @@
 use crate::audio_analysis::{AnalysisResult, NoteEvent};
+use crate::comparison::{
+    ComparisonMetrics, compare_recordings, extract_note_sequence, extract_rhythm_pattern,
+    hz_to_note_name,
+};
 use serde_json::json;
 use std::fs::File;
 use std::io::Write;
@@ -172,4 +176,218 @@ pub fn export_for_gpt(result: &AnalysisResult, output_path: &str) -> anyhow::Res
     let mut file = File::create(output_path)?;
     file.write_all(json_output.to_string().as_bytes())?;
     Ok(())
+}
+
+/// Export optimized analysis for GPT with reduced context window usage
+/// This version focuses on summarized data and musical patterns rather than raw values
+pub fn export_optimized_for_gpt(
+    result: &AnalysisResult,
+    output_path: &str,
+    reference: Option<&AnalysisResult>,
+) -> anyhow::Result<()> {
+    // Extract high-level musical features
+    let note_sequence = extract_note_sequence(result);
+    let rhythm_pattern = extract_rhythm_pattern(result);
+
+    // Calculate statistics instead of dumping all values
+    let pitch_stats = if !result.pitch_hz.is_empty() {
+        let avg = result.pitch_hz.iter().sum::<f32>() / result.pitch_hz.len() as f32;
+        let min = result
+            .pitch_hz
+            .iter()
+            .cloned()
+            .fold(f32::INFINITY, f32::min);
+        let max = result
+            .pitch_hz
+            .iter()
+            .cloned()
+            .fold(f32::NEG_INFINITY, f32::max);
+        let variance = result
+            .pitch_hz
+            .iter()
+            .map(|&x| (x - avg).powi(2))
+            .sum::<f32>()
+            / result.pitch_hz.len() as f32;
+        let std_dev = variance.sqrt();
+
+        json!({
+            "average_hz": avg,
+            "average_note": hz_to_note_name(avg),
+            "min_hz": min,
+            "min_note": hz_to_note_name(min),
+            "max_hz": max,
+            "max_note": hz_to_note_name(max),
+            "pitch_range_semitones": ((max / min).log2() * 12.0).round(),
+            "pitch_stability": if avg > 0.0 { 1.0 - (std_dev / avg).min(1.0) } else { 0.0 },
+        })
+    } else {
+        json!({})
+    };
+
+    // Calculate unique notes
+    let unique_notes: Vec<String> = {
+        let mut unique: Vec<String> = note_sequence.iter().map(|n| n.note_name.clone()).collect();
+        unique.sort();
+        unique.dedup();
+        unique
+    };
+
+    // Simplified note sequence (top-level patterns only)
+    let notes_summary = json!({
+        "total_notes": note_sequence.len(),
+        "unique_notes": unique_notes,
+        "note_sequence": note_sequence.iter().map(|n| {
+            json!({
+                "note": n.note_name,
+                "time": format!("{:.2}", n.start_time),
+                "duration": format!("{:.3}", n.duration),
+            })
+        }).collect::<Vec<_>>(),
+    });
+
+    // Rhythm analysis
+    let rhythm_summary = json!({
+        "total_onsets": rhythm_pattern.onset_times.len(),
+        "average_note_interval_ms": (rhythm_pattern.avg_interval * 1000.0).round(),
+        "tempo_stability": format!("{:.2}", rhythm_pattern.tempo_stability),
+        "tempo_bpm": result.tempo_bpm,
+    });
+
+    // Comparison metrics if reference provided
+    let comparison = if let Some(ref_result) = reference {
+        let metrics = compare_recordings(ref_result, result);
+        Some(json!({
+            "overall_similarity": format!("{:.1}%", metrics.overall_similarity * 100.0),
+            "scores": {
+                "note_accuracy": format!("{:.1}%", metrics.note_accuracy * 100.0),
+                "pitch_accuracy": format!("{:.1}%", metrics.pitch_accuracy * 100.0),
+                "timing_accuracy": format!("{:.1}%", metrics.timing_accuracy * 100.0),
+                "rhythm_accuracy": format!("{:.1}%", metrics.rhythm_accuracy * 100.0),
+            },
+            "errors": {
+                "missed_notes": metrics.missed_notes,
+                "extra_notes": metrics.extra_notes,
+                "pitch_errors": metrics.pitch_errors.iter().take(10).map(|e| {
+                    json!({
+                        "time": format!("{:.2}s", e.time),
+                        "expected": e.expected_note,
+                        "played": e.played_note,
+                        "cents_off": format!("{:.1}", e.cent_difference),
+                    })
+                }).collect::<Vec<_>>(),
+                "timing_errors": metrics.timing_errors.iter().take(10).map(|e| {
+                    json!({
+                        "note": e.note,
+                        "expected_time": format!("{:.2}s", e.expected_time),
+                        "played_time": format!("{:.2}s", e.played_time),
+                        "ms_late": format!("{:.1}", e.ms_difference),
+                    })
+                }).collect::<Vec<_>>(),
+            },
+            "summary": generate_error_summary(&metrics),
+        }))
+    } else {
+        None
+    };
+
+    let json_output = json!({
+        "format_version": "2.0-optimized",
+        "instructions": generate_instructions(comparison.is_some()),
+        "pitch_statistics": pitch_stats,
+        "notes": notes_summary,
+        "rhythm": rhythm_summary,
+        "comparison": comparison,
+        "context": {
+            "sample_rate": "analyzed",
+            "window_size": 1024,
+            "hop_size": 512,
+        }
+    });
+
+    let mut file = File::create(output_path)?;
+    file.write_all(serde_json::to_string_pretty(&json_output)?.as_bytes())?;
+    Ok(())
+}
+
+/// Generate context-appropriate instructions for the AI
+fn generate_instructions(has_comparison: bool) -> String {
+    if has_comparison {
+        "You are analyzing a student's guitar performance compared to a reference recording. \
+        The 'comparison' section provides detailed metrics about accuracy. Focus on:\n\
+        1. Overall similarity score and what it means\n\
+        2. Specific errors in pitch, timing, and rhythm\n\
+        3. Missed or extra notes\n\
+        4. Constructive feedback on how to improve\n\
+        5. Positive reinforcement for what was done well\n\n\
+        Use the note sequences and rhythm patterns to understand the musical context. \
+        Be specific about which notes or sections need work."
+            .to_string()
+    } else {
+        "You are analyzing a guitar recording. Use the provided statistics and patterns to:\n\
+        1. Identify the musical content (notes, rhythm, tempo)\n\
+        2. Assess the overall quality and technique\n\
+        3. Provide constructive feedback\n\
+        4. Suggest areas for improvement\n\n\
+        Consider pitch stability, rhythm consistency, and note accuracy."
+            .to_string()
+    }
+}
+
+/// Generate a human-readable summary of errors
+fn generate_error_summary(metrics: &ComparisonMetrics) -> String {
+    let mut summary = Vec::new();
+
+    if metrics.overall_similarity >= 0.9 {
+        summary.push("Excellent performance! Very close to the reference.".to_string());
+    } else if metrics.overall_similarity >= 0.75 {
+        summary.push("Good performance with minor errors.".to_string());
+    } else if metrics.overall_similarity >= 0.5 {
+        summary.push("Fair performance. Several areas need improvement.".to_string());
+    } else {
+        summary.push("Needs significant practice. Many errors detected.".to_string());
+    }
+
+    if metrics.note_accuracy < 0.7 {
+        summary.push(format!(
+            "Note accuracy is low ({:.0}%). Focus on playing the correct notes.",
+            metrics.note_accuracy * 100.0
+        ));
+    }
+
+    if metrics.pitch_accuracy < 0.7 {
+        summary.push(format!(
+            "Pitch accuracy needs work ({:.0}%). Notes are out of tune.",
+            metrics.pitch_accuracy * 100.0
+        ));
+    }
+
+    if metrics.timing_accuracy < 0.7 {
+        summary.push(format!(
+            "Timing is off ({:.0}%). Practice with a metronome.",
+            metrics.timing_accuracy * 100.0
+        ));
+    }
+
+    if metrics.rhythm_accuracy < 0.7 {
+        summary.push(format!(
+            "Rhythm accuracy needs improvement ({:.0}%).",
+            metrics.rhythm_accuracy * 100.0
+        ));
+    }
+
+    if !metrics.missed_notes.is_empty() {
+        summary.push(format!(
+            "Missed {} note(s). Make sure to play all notes in the piece.",
+            metrics.missed_notes.len()
+        ));
+    }
+
+    if !metrics.extra_notes.is_empty() {
+        summary.push(format!(
+            "Played {} extra note(s) not in the reference.",
+            metrics.extra_notes.len()
+        ));
+    }
+
+    summary.join(" ")
 }
