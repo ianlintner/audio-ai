@@ -11,6 +11,9 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::probe::Hint;
 use symphonia::default::get_probe;
 
+// Default OpenAI model - can be overridden with OPENAI_MODEL env var
+const DEFAULT_OPENAI_MODEL: &str = "gpt-4o-mini";
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
@@ -229,8 +232,10 @@ async fn send_comparison_to_ai(
         metrics.timing_errors.len()
     );
 
+    let model = std::env::var("OPENAI_MODEL").unwrap_or_else(|_| DEFAULT_OPENAI_MODEL.to_string());
+
     let body = serde_json::json!({
-        "model": "gpt-4o-mini",
+        "model": model,
         "messages": [
             {"role": "system", "content": "You are an expert guitar teacher providing constructive feedback to students. Be specific, encouraging, and helpful."},
             {"role": "user", "content": prompt}
@@ -295,8 +300,10 @@ async fn send_single_file_to_ai(
         file_path
     );
 
+    let model = std::env::var("OPENAI_MODEL").unwrap_or_else(|_| DEFAULT_OPENAI_MODEL.to_string());
+
     let body = serde_json::json!({
-        "model": "gpt-4o-mini",
+        "model": model,
         "messages": [
             {"role": "system", "content": "You are a guitar teacher analyzing student recordings."},
             {"role": "user", "content": prompt}

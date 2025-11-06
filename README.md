@@ -86,8 +86,17 @@ This will:
 ### Environment Variables
 Create a `.env` file in the project root:
 ```bash
+# Required for AI feedback
 OPENAI_API_KEY=your_api_key_here
+
+# Optional: customize the OpenAI model (defaults to gpt-4o-mini)
+OPENAI_MODEL=gpt-4o
 ```
+
+Available models:
+- `gpt-4o-mini` (default) - Fast and cost-effective
+- `gpt-4o` - More capable, higher quality
+- `gpt-4-turbo` - Alternative high-quality option
 
 ### Test
 ```bash
