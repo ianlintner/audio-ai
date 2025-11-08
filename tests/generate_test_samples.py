@@ -94,7 +94,6 @@ def generate_midi_file(notes, output_file, tempo=120):
 
 def convert_midi_to_wav(midi_file, wav_file):
     """Convert MIDI to WAV using fluidsynth or timidity if available."""
-    wav_path = os.path.join(OUTPUT_DIR, wav_file)
     
     # Try fluidsynth first (if available with a soundfont)
     # Since we may not have soundfonts, we'll skip this for now
