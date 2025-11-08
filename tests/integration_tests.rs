@@ -13,20 +13,22 @@ fn test_data_path(filename: &str) -> PathBuf {
 #[test]
 fn test_analyze_single_tone_a4() {
     let path = test_data_path("tone_a4_440hz.wav");
-    let result = analyze_audio(path.to_str().unwrap())
-        .expect("Failed to analyze tone_a4_440hz.wav");
+    let result =
+        analyze_audio(path.to_str().unwrap()).expect("Failed to analyze tone_a4_440hz.wav");
 
     // Should detect frequencies close to 440 Hz
     assert!(
         !result.pitch_hz.is_empty(),
         "Should detect pitch in A4 tone"
     );
-    
+
     // Check that most detected pitches are close to 440 Hz (within 10 Hz tolerance)
-    let close_to_a4 = result.pitch_hz.iter()
+    let close_to_a4 = result
+        .pitch_hz
+        .iter()
         .filter(|&&f| f > 0.0 && (f - 440.0).abs() < 10.0)
         .count();
-    
+
     assert!(
         close_to_a4 > result.pitch_hz.len() / 2,
         "Majority of detected pitches should be close to A4 (440 Hz)"
@@ -36,8 +38,8 @@ fn test_analyze_single_tone_a4() {
 #[test]
 fn test_analyze_c_major_scale() {
     let path = test_data_path("scale_c_major.wav");
-    let result = analyze_audio(path.to_str().unwrap())
-        .expect("Failed to analyze scale_c_major.wav");
+    let result =
+        analyze_audio(path.to_str().unwrap()).expect("Failed to analyze scale_c_major.wav");
 
     // Extract note sequence
     let notes = extract_note_sequence(&result);
@@ -52,12 +54,12 @@ fn test_analyze_c_major_scale() {
     // Check that we have some of the expected notes
     let note_names: Vec<String> = notes.iter().map(|n| n.note_name.clone()).collect();
     println!("Detected notes: {:?}", note_names);
-    
+
     // Should include some notes from the C major scale
     let has_c = note_names.iter().any(|n| n.starts_with('C'));
     let has_e = note_names.iter().any(|n| n.starts_with('E'));
     let has_g = note_names.iter().any(|n| n.starts_with('G'));
-    
+
     assert!(
         has_c || has_e || has_g,
         "Should detect at least some notes from C major scale"
@@ -67,8 +69,8 @@ fn test_analyze_c_major_scale() {
 #[test]
 fn test_compare_identical_melodies() {
     let path = test_data_path("melody_simple.wav");
-    let result1 = analyze_audio(path.to_str().unwrap())
-        .expect("Failed to analyze melody_simple.wav");
+    let result1 =
+        analyze_audio(path.to_str().unwrap()).expect("Failed to analyze melody_simple.wav");
     let result2 = analyze_audio(path.to_str().unwrap())
         .expect("Failed to analyze melody_simple.wav (second time)");
 
