@@ -22,6 +22,11 @@ samples/
 *.ogg
 *.wma
 
+# Exception: allow test data files
+!tests/data/*.wav
+!tests/data/*.mid
+!tests/data/*.midi
+
 *_gpt.json
 /implementation_plan.md
 /TODO.md

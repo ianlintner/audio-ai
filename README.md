@@ -103,6 +103,21 @@ Available models:
 cargo test
 ```
 
+### Test Data
+The repository includes generated sample audio files for integration testing. These files are located in `tests/data/` and include:
+- Single tone WAV files at various frequencies
+- Musical sequences (scales, melodies)
+- Rhythm patterns for tempo testing
+- MIDI files for MIDI support testing
+
+To regenerate test samples:
+```bash
+cd tests
+python3 generate_test_samples.py
+```
+
+See [tests/data/README.md](tests/data/README.md) for details on the test samples.
+
 ## Development
 
 ### Linting & Formatting
