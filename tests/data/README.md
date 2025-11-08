@@ -43,7 +43,7 @@ python3 generate_test_samples.py
 ```
 
 ### Requirements
-- Python 3
+- Python 3.7+
 - sox (command-line audio tool)
 - midiutil (Python package: `pip3 install midiutil`)
 
