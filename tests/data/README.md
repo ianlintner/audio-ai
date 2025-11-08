@@ -52,6 +52,14 @@ Install system dependencies:
 # Ubuntu/Debian
 sudo apt-get install sox libsox-fmt-all
 
+# macOS (Homebrew)
+brew install sox
+
+# Windows (Chocolatey)
+choco install sox
+
+# Windows (Scoop)
+scoop install sox
 # Install Python package
 pip3 install midiutil
 ```
