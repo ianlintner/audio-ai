@@ -105,7 +105,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Send to AI for detailed feedback
         if let Ok(client) = OpenAIClient::new() {
-            match client.send_comparison(&metrics, reference_path, player_path).await {
+            match client
+                .send_comparison(&metrics, reference_path, player_path)
+                .await
+            {
                 Ok(feedback) => {
                     println!("\n=== AI Feedback ===");
                     println!("{}", feedback.content);

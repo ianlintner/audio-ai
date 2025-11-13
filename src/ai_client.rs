@@ -42,7 +42,8 @@ impl OpenAIClient {
     pub fn new() -> Result<Self> {
         let api_key = std::env::var("OPENAI_API_KEY")
             .map_err(|_| anyhow::anyhow!("OPENAI_API_KEY environment variable not set"))?;
-        let model = std::env::var("OPENAI_MODEL").unwrap_or_else(|_| DEFAULT_OPENAI_MODEL.to_string());
+        let model =
+            std::env::var("OPENAI_MODEL").unwrap_or_else(|_| DEFAULT_OPENAI_MODEL.to_string());
         let client = reqwest::Client::new();
 
         Ok(Self {
@@ -166,6 +167,10 @@ impl AIClient for OpenAIClient {
 }
 
 /// Mock AI client for testing
+/// 
+/// This is exposed publicly to allow integration tests to use it,
+/// but should only be used in tests.
+#[allow(dead_code)]
 pub struct MockAIClient {
     pub comparison_responses: Vec<String>,
     pub single_analysis_responses: Vec<String>,
@@ -173,6 +178,14 @@ pub struct MockAIClient {
     single_call_count: std::sync::Arc<std::sync::Mutex<usize>>,
 }
 
+#[allow(dead_code)]
+impl Default for MockAIClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[allow(dead_code)]
 impl MockAIClient {
     pub fn new() -> Self {
         Self {
@@ -216,7 +229,7 @@ impl AIClient for MockAIClient {
         let mut count = self.comparison_call_count.lock().unwrap();
         let index = *count % self.comparison_responses.len();
         *count += 1;
-        
+
         Ok(AIFeedback {
             content: self.comparison_responses[index].clone(),
         })
@@ -270,8 +283,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_client_single_analysis() {
-        let mock = MockAIClient::new()
-            .with_single_response("Test feedback for single file".to_string());
+        let mock =
+            MockAIClient::new().with_single_response("Test feedback for single file".to_string());
 
         let analysis = AnalysisResult {
             pitch_hz: vec![440.0, 440.0],

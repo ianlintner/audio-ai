@@ -16,15 +16,13 @@ fn test_data_path(filename: &str) -> PathBuf {
 async fn test_ai_feedback_for_single_file_analysis() {
     // Load a test audio file
     let path = test_data_path("tone_a4_440hz.wav");
-    let analysis = analyze_audio(path.to_str().unwrap())
-        .expect("Failed to analyze test file");
+    let analysis = analyze_audio(path.to_str().unwrap()).expect("Failed to analyze test file");
 
     // Create a mock AI client with a stubbed response
     let expected_feedback = "Excellent pitch stability on the A4 note! Your intonation is spot-on at 440Hz. \
         Try varying your dynamics to add more expression.";
-    
-    let mock_client = MockAIClient::new()
-        .with_single_response(expected_feedback.to_string());
+
+    let mock_client = MockAIClient::new().with_single_response(expected_feedback.to_string());
 
     // Send analysis to mock AI
     let result = mock_client
@@ -43,10 +41,10 @@ async fn test_ai_feedback_for_comparison() {
     let reference_path = test_data_path("melody_simple.wav");
     let variant_path = test_data_path("melody_simple_pitch_variant.wav");
 
-    let reference = analyze_audio(reference_path.to_str().unwrap())
-        .expect("Failed to analyze reference file");
-    let variant = analyze_audio(variant_path.to_str().unwrap())
-        .expect("Failed to analyze variant file");
+    let reference =
+        analyze_audio(reference_path.to_str().unwrap()).expect("Failed to analyze reference file");
+    let variant =
+        analyze_audio(variant_path.to_str().unwrap()).expect("Failed to analyze variant file");
 
     // Generate comparison metrics
     let metrics = compare_recordings(&reference, &variant);
@@ -55,9 +53,8 @@ async fn test_ai_feedback_for_comparison() {
     let expected_feedback = "Good effort! Your overall similarity is 85%. \
         I noticed some pitch variations on notes 2 and 4 - they're slightly sharp. \
         Practice those specific notes with a tuner. Your timing is excellent though!";
-    
-    let mock_client = MockAIClient::new()
-        .with_comparison_response(expected_feedback.to_string());
+
+    let mock_client = MockAIClient::new().with_comparison_response(expected_feedback.to_string());
 
     // Send comparison to mock AI
     let result = mock_client
@@ -73,8 +70,8 @@ async fn test_ai_feedback_for_comparison() {
 #[tokio::test]
 async fn test_ai_feedback_for_multiple_comparisons() {
     // Test that the mock client can handle multiple calls
-    let mock_client = MockAIClient::new()
-        .with_comparison_response("First feedback response".to_string());
+    let mock_client =
+        MockAIClient::new().with_comparison_response("First feedback response".to_string());
 
     // Create a simple metrics object
     let metrics = audio_ai::comparison::ComparisonMetrics {
@@ -95,7 +92,7 @@ async fn test_ai_feedback_for_multiple_comparisons() {
             .send_comparison(&metrics, "ref.wav", &format!("student_{}.wav", i))
             .await
             .expect("Failed to get AI feedback");
-        
+
         assert_eq!(result.content, "First feedback response");
     }
 
@@ -106,8 +103,7 @@ async fn test_ai_feedback_for_multiple_comparisons() {
 async fn test_ai_feedback_for_scale_analysis() {
     // Load the C major scale test file
     let path = test_data_path("scale_c_major.wav");
-    let analysis = analyze_audio(path.to_str().unwrap())
-        .expect("Failed to analyze scale");
+    let analysis = analyze_audio(path.to_str().unwrap()).expect("Failed to analyze scale");
 
     // Create a mock AI client with scale-specific feedback
     let expected_feedback = "Nice C major scale! All 8 notes are present and clearly articulated. \
@@ -115,9 +111,8 @@ async fn test_ai_feedback_for_scale_analysis() {
         The tempo is consistent at 120 BPM. \
         For improvement, focus on making the transitions between notes smoother, \
         especially between B4 and C5.";
-    
-    let mock_client = MockAIClient::new()
-        .with_single_response(expected_feedback.to_string());
+
+    let mock_client = MockAIClient::new().with_single_response(expected_feedback.to_string());
 
     // Send analysis to mock AI
     let result = mock_client
@@ -134,16 +129,14 @@ async fn test_ai_feedback_for_scale_analysis() {
 async fn test_ai_feedback_for_rhythm_analysis() {
     // Load a rhythm test file
     let path = test_data_path("rhythm_quarter_notes_120bpm.wav");
-    let analysis = analyze_audio(path.to_str().unwrap())
-        .expect("Failed to analyze rhythm pattern");
+    let analysis = analyze_audio(path.to_str().unwrap()).expect("Failed to analyze rhythm pattern");
 
     // Create a mock AI client with rhythm-specific feedback
     let expected_feedback = "Excellent rhythm work! Your quarter notes are evenly spaced at 120 BPM. \
         The tempo stability is very high, showing good internal timing. \
         This is fundamental to good musicianship - keep it up!";
-    
-    let mock_client = MockAIClient::new()
-        .with_single_response(expected_feedback.to_string());
+
+    let mock_client = MockAIClient::new().with_single_response(expected_feedback.to_string());
 
     // Send analysis to mock AI
     let result = mock_client
@@ -180,9 +173,8 @@ async fn test_ai_feedback_handles_poor_performance() {
         \n\
         Don't be discouraged! Break the piece into smaller sections and master each one \
         before putting it all together. You've got this!";
-    
-    let mock_client = MockAIClient::new()
-        .with_comparison_response(expected_feedback.to_string());
+
+    let mock_client = MockAIClient::new().with_comparison_response(expected_feedback.to_string());
 
     // Send comparison to mock AI
     let result = mock_client
@@ -224,9 +216,8 @@ async fn test_ai_feedback_for_excellent_performance() {
         remaining pitch variations - they're very subtle but worth addressing. \
         Consider recording yourself and comparing to hear the tiny differences. \
         Excellent work overall!";
-    
-    let mock_client = MockAIClient::new()
-        .with_comparison_response(expected_feedback.to_string());
+
+    let mock_client = MockAIClient::new().with_comparison_response(expected_feedback.to_string());
 
     // Send comparison to mock AI
     let result = mock_client
