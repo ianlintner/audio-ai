@@ -167,7 +167,7 @@ impl AIClient for OpenAIClient {
 }
 
 /// Mock AI client for testing
-/// 
+///
 /// This is exposed publicly to allow integration tests to use it,
 /// but should only be used in tests.
 #[allow(dead_code)]
