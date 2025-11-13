@@ -103,6 +103,8 @@ Available models:
 cargo test
 ```
 
+All tests run without requiring an OpenAI API key. AI integration tests use stubbed/mocked responses to validate functionality without making actual API calls.
+
 ### Test Data
 The repository includes generated sample audio files for integration testing. These files are located in `tests/data/` and include:
 - Single tone WAV files at various frequencies
@@ -117,6 +119,15 @@ python3 generate_test_samples.py
 ```
 
 See [tests/data/README.md](tests/data/README.md) for details on the test samples.
+
+### AI Integration Testing
+The project includes comprehensive integration tests for AI functionality using stubbed responses. This allows:
+- Testing AI integration without API keys
+- Consistent, reproducible test results
+- Fast test execution without network calls
+- Validation of different feedback scenarios (excellent, poor, constructive)
+
+See `tests/ai_integration_tests.rs` for examples of how to test AI functionality with mocked responses.
 
 ## Development
 
@@ -138,8 +149,9 @@ See [docs/architecture.md](docs/architecture.md) for detailed architecture docum
 ### Key Modules
 
 - **`audio_analysis.rs`**: Audio feature extraction (pitch, tempo, onsets)
-- **`comparison.rs`** (NEW): Musical pattern extraction and comparison metrics
+- **`comparison.rs`**: Musical pattern extraction and comparison metrics
 - **`processor.rs`**: Data transformation and optimized JSON export
+- **`ai_client.rs`**: AI integration with OpenAI API and mock client for testing
 - **`streaming.rs`**: Real-time audio capture and analysis
 - **`main.rs`**: CLI interface with single-file and comparison modes
 
